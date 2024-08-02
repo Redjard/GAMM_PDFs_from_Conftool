@@ -9,8 +9,7 @@ import requests
 import os
 
 # configuration
-# url = open('.url').read().strip()          # read URL from .url
-url = 'https://www.conftool.org/efdc1/rest.php'          # read URL from .url
+url = open('.url').read().strip()          # read URL from .url
 password = open('.secret').read().strip()  # read password from .secret
 output_dir = "./CSV"                       # where to put the CSVs
 
