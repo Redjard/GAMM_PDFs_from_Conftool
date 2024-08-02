@@ -64,9 +64,13 @@ __pycache__
 
 # project specific ignores
 #################################################
+
+# if you want to push to main, run this before your first git add:
+# git update-index --assume-unchanged CSV/.keep .url .secret
 .secret
 .url
 CSV/
+
 *.pdf
 HTML/*.html
 LaTeX/Book_of_abstracts/BookOfAbstracts.tex
