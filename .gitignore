@@ -64,18 +64,14 @@ __pycache__
 
 # project specific ignores
 #################################################
+.secret
+.url
+CSV/*
 *.pdf
-CSV/abstracts.csv
-CSV/contributions.csv
-CSV/sessions.csv
-CSV/speakers.csv
-CSV/organizers.csv
 HTML/*.html
 LaTeX/Book_of_abstracts/BookOfAbstracts.tex
 LaTeX/Book_of_abstracts/Sessions/*.tex
 LaTeX/Daily_Scientific_Program/Daily_Scientific_Program.tex
 LaTeX/Daily_Scientific_Program/rooms/*.tex
-.secret
-.url
 all_abstracts.tex
 all_abstracts.html
