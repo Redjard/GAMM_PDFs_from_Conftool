@@ -51,11 +51,11 @@ Scroll down to "Enable General REST Interface" to define a shared
 passphrase and enable the interface. The passphrase must have at least
 8 characters. This passphrase then goes into `.secret` as its only content.
 
-Below the field you can also find the URL of the REST interface. It
-looks like the following:
-[https://www.conftool.org/gammYYYY/rest.php](https://www.conftool.net/gammYYYY/rest.php).
-Where YYYY stands for the year of your GAMM instance. Copy this URL
-into the `.url` file.
+Below the field you can also find the URL of the REST interface.
+It should look similar to:
+[https://www.conftool.org/XYZ/rest.php](https://www.conftool.net/XYZ/rest.php).
+Where XYZ is the identifier of your conference, for example gamm2024 or efdc1.
+Copy this URL into the `.url` file.
 
 ### `BoA_DSP_generator.py`
 
