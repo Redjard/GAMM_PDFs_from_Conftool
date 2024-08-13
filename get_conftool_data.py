@@ -13,15 +13,6 @@ url = open('.url').read().strip()          # read URL from .url
 password = open('.secret').read().strip()  # read password from .secret
 output_dir = "./CSV"                       # where to put the CSVs
 
-# output file names for the different categories
-files = {
-    "abstracts":     "abstracts.csv",
-    "sessions":      "sessions.csv",
-    "speakers":      "speakers.csv",
-    "contributions": "contributions.csv",
-    "organizers":    "organizers.csv"
-}
-
 # common request parameters for the REST API needed for all queries
 common_param = {
     "page": "adminExport",                      # mandatory
@@ -63,7 +54,11 @@ exports = {
     "organizers": {
         "export_select": "reviewers",
         "form_status": "p"
-    }
+    },
+    "users": {
+        "export_select": "users",
+        "form_status": "p"
+    },
 }
 
 # helper function generating a unique timestamp and password hash combination
@@ -88,7 +83,7 @@ def export_data(export_name, export_params):
  
     response = requests.post(url, data=data)
  
-    with open(os.path.join(output_dir, files[export_name]), 'wb') as f:
+    with open(os.path.join(output_dir, f"{export_name}.csv"), 'wb') as f:
         f.write(response.content)
     time.sleep(1)
 
@@ -100,3 +95,6 @@ if not os.path.exists(output_dir):
 # and finally the loop over all configured exports
 for export_name, export_params in exports.items():
     export_data(export_name, export_params)
+
+# manual download:
+# r = requests.post(url, data={**common_param, "export_select": "sessions", "form_export_sessions_options[]": ["presentations","presentations_abstracts"], "nonce": (timestamp := str(int(time.time() * 10000))), "passhash": hashlib.sha256((timestamp + password).encode()).hexdigest()}).content.decode('utf8')
