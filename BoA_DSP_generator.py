@@ -363,7 +363,7 @@ def write_dfg(organizers, df, outdir):
 ################################################################################
 # routine for writing the tables in the daily session program                 #
 ################################################################################
-def make_session_table(sessionsAtTime, start, n, withMises=False):
+def make_session_table(sessionsAtTime, start, n, withMises=False):  # function used only in make_dsp
 	match n:
 		case 1:
 			inputs = '\\begin{longtable}{PA|}\n'
@@ -373,7 +373,7 @@ def make_session_table(sessionsAtTime, start, n, withMises=False):
 			inputs = '\\begin{longtable}{Pxyx|}\n'
 		case 16: #this is the same magic 16 as in make_dsp working for 2024's GAMM
 			inputs = '\\begin{longtable}{PA|}\n'
-		case _: # normal session
+		case _: # normal session (6 for GAMM)
 			column_sequence = ('XY'*-(-n//2))[:n]
 			inputs = f'\\begin{{longtable}}{{P{column_sequence}|}}\n'
 
@@ -396,60 +396,65 @@ def make_session_table(sessionsAtTime, start, n, withMises=False):
 		for i in range(n): # i counts fields in row
 			if skip:
 				skip = False
-			else:
-				j += 1
-				contribution = get_contribution_info(session, j)
-				if contribution is None:
-					if sname == 'RvML':
-						inputs += '\n&\\footnotesize{\\bfseries Price winner(s) and title(s) will be announced in the Opening}'
-					else:
-						if not drop_extra_empty:
-							inputs += '\n&'
+				continue
+			
+			j += 1
+			contribution = get_contribution_info(session, j)
+			if contribution is None:
+				if sname == 'RvML':
+					inputs += '\n&\\footnotesize{\\bfseries Price winner(s) and title(s) will be announced in the Opening}'
 				else:
-					match contribution["duration"]:
-						case 60: # PLenary lectures (incl Prandtl)
+					if not drop_extra_empty:
+						inputs += '\n&'
+				
+				continue
+			
+			match contribution["duration"]:
+				case 60: # PLenary lectures (incl Prandtl)
+					inputs += f'\n&\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
+				case sessionlengths.double: # Topcial Speakers
+					skip = True # found a topical speaker double slot and skip next
+					match n:
+						case 3: # duration intended to be 40
+							inputs += '\n&\\multicolumn{2}{t}'
+						case 6: # double length session
+							inputs += '\n&\\multicolumn{2}{T}'
+					inputs += f'{{\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}}}'
+					
+				case sessionlengths.threeHalf: # either von Mises Lecture session with 2 talks or Minisymposium with 4 talks
+					print("MS",i,j)
+					if sname == 'RvML':
+						if withMises:
 							inputs += f'\n&\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
-						case sessionlengths.double: # Topcial Speakers
-							skip = True # found a topical speaker double slot and skip next
-							match n:
-								case 3: # duration intended to be 40
-									inputs += '\n&\\multicolumn{2}{t}'
-								case 6: # double length session
-									inputs += '\n&\\multicolumn{2}{T}'
-							inputs += f'{{\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}}}'
-						case sessionlengths.threeHalf: # either von Mises Lecture session with 2 talks or Minisymposium with 4 talks
-							
-							noSlots = n*sessionlengths.default // sessionlengths.miniSymposium
-							
-							print("MS",i,j)
-							if sname == 'RvML':
-								if withMises:
-									inputs += f'\n&\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
-								else:
-								   inputs += '\n&\\footnotesize{\\bfseries Price winner(s) and title(s) will be announced in the Opening}'
-							else:
-								inputs += '\n&'
-								
-								if i == 0:  # start
-									drop_extra_empty = True
-									inputs += '\\multicolumn{6}{A}{\\noindent\\begin{tabularx}{\\linewidth}{@{}BCBC@{}}'
-								
-								inputs += f'\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
-								
-								if i == noSlots-1:  # end
-									inputs += '\\end{tabularx}}'
-								
-						case sessionlengths.default: # the default 15 or 20 minutes section talks
-							shift = get_duration(advance_slot(start,i,sessionlengths.default).isoformat(), contribution["start"])
-							if shift > 0: # there is a gap in the schedule
-								inputs += '\n&' # add empty cell
-								j -= 1 # revisit contribution for next column
-							else:
-								inputs += f'\n&\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
-						case 0: # we explicitly set 0 for posters
-							inputs += f'\n&\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}\\\\\\hline'
-						case _:
-							raise SystemExit('make_session_table: non-standard contribution length detected')
+						else:
+						   inputs += '\n&\\footnotesize{\\bfseries Price winner(s) and title(s) will be announced in the Opening}'
+					else:
+						inputs += '\n&'
+						
+						noSlots = n*sessionlengths.default // sessionlengths.miniSymposium
+						
+						if i == 0:  # start
+							drop_extra_empty = True
+							inputs += '\\multicolumn{6}{A}{\\noindent\\begin{tabularx}{\\linewidth}{@{}BCBC@{}}'
+						
+						inputs += f'\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
+						
+						if i == noSlots-1:  # end
+							inputs += '\\end{tabularx}}'
+					
+				case sessionlengths.default: # the default 15 or 20 minutes section talks
+					shift = get_duration(advance_slot(start,i,sessionlengths.default).isoformat(), contribution["start"])
+					if shift > 0: # there is a gap in the schedule
+						inputs += '\n&' # add empty cell
+						j -= 1 # revisit contribution for next column
+					else:
+						inputs += f'\n&\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
+					
+				case 0: # we explicitly set 0 for posters
+					inputs += f'\n&\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}\\\\\\hline'
+					
+				case _:
+					raise SystemExit('make_session_table: non-standard contribution length detected')
 		inputs += '\\\\\\hline\n'
 	inputs += '\\end{longtable}\n'
 	return utf8_clean(inputs)
@@ -548,7 +553,6 @@ def make_dsp(sessions, withMises=False):
 		# sessions at time
 		sessionsAtTime = sessions[sessions['session_start'] == startStr].sort_values(by='session_short') # session at time
 		
-		print(startStr)
 		start = dt.datetime.fromisoformat(startStr)
 		day = start.strftime("%A, %B %d")
 		if old_day != day:
@@ -556,7 +560,6 @@ def make_dsp(sessions, withMises=False):
 			inputs += f'\\chapter{{{day}}}\n'
 		#inputs += f'\\section*{{{start.strftime("%H:%M")}}}\n'
 		length = get_duration(startStr, sessionsAtTime.session_end.values[0])
-		print(length)
 		if len(sessionsAtTime) == 1:
 			if sessionsAtTime['session_short'].values[0].startswith('PL') | sessionsAtTime['session_short'].values[0].startswith('PML') | sessionsAtTime['session_short'].values[0].startswith('RvML'):
 				inputs += make_session_table(sessionsAtTime, start, int(1))
