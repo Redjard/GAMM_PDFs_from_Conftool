@@ -392,66 +392,62 @@ def make_session_table(sessionsAtTime, start, n, withMises=False):  # function u
 		sroom = session['session_room']
 		inputs += rf'\white{{\detokenize{{{sname}}}}}\newline\white{{\small\detokenize{{ ({sroom})}}}}'
 		j = 0 # j counts speakers/contributions in the session CSV
-		drop_extra_empty = False
 		for i in range(n): # i counts fields in row
 			if skip:
 				skip = False
 				continue
 			
+			inputs += '\n&'  # allways add cell, even if no info in cell
+			
 			j += 1
 			contribution = get_contribution_info(session, j)
+			
 			if contribution is None:
 				if sname == 'RvML':
-					inputs += '\n&\\footnotesize{\\bfseries Price winner(s) and title(s) will be announced in the Opening}'
-				else:
-					if not drop_extra_empty:
-						inputs += '\n&'
+					inputs += '\\footnotesize{\\bfseries Price winner(s) and title(s) will be announced in the Opening}'
 				
 				continue
 			
 			match contribution["duration"]:
 				case 60: # PLenary lectures (incl Prandtl)
-					inputs += f'\n&\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
+					inputs += f'\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
 				case sessionlengths.double: # Topcial Speakers
 					skip = True # found a topical speaker double slot and skip next
-					match n:
-						case 3: # duration intended to be 40
-							inputs += '\n&\\multicolumn{2}{t}'
-						case 6: # double length session
-							inputs += '\n&\\multicolumn{2}{T}'
+					style = "T"
+					if n == 3:
+						style = "t"
+					
+					inputs += f'\\multicolumn{{2}}{{{style}}}'
 					inputs += f'{{\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}}}'
 					
 				case sessionlengths.threeHalf: # either von Mises Lecture session with 2 talks or Minisymposium with 4 talks
 					print("MS",i,j)
 					if sname == 'RvML':
 						if withMises:
-							inputs += f'\n&\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
+							inputs += f'\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
 						else:
-						   inputs += '\n&\\footnotesize{\\bfseries Price winner(s) and title(s) will be announced in the Opening}'
+							inputs += '\\footnotesize{\\bfseries Price winner(s) and title(s) will be announced in the Opening}'
 					else:
-						inputs += '\n&'
-						
 						noSlots = n*sessionlengths.default // sessionlengths.miniSymposium
 						
 						if i == 0:  # start
-							drop_extra_empty = True
 							inputs += '\\multicolumn{6}{A}{\\noindent\\begin{tabularx}{\\linewidth}{@{}BCBC@{}}'
 						
 						inputs += f'\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
 						
 						if i == noSlots-1:  # end
 							inputs += '\\end{tabularx}}'
+							break  # replaces drop_extra_empty, by doing the same functionally, behaves better if missing contrib in 4-ses-ms
 					
 				case sessionlengths.default: # the default 15 or 20 minutes section talks
 					shift = get_duration(advance_slot(start,i,sessionlengths.default).isoformat(), contribution["start"])
 					if shift > 0: # there is a gap in the schedule
-						inputs += '\n&' # add empty cell
 						j -= 1 # revisit contribution for next column
 					else:
-						inputs += f'\n&\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
+						inputs += f'\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
 					
 				case 0: # we explicitly set 0 for posters
-					inputs += f'\n&\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}\\\\\\hline'
+					inputs += f'\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}\\\\\\hline'
 					
 				case _:
 					raise SystemExit('make_session_table: non-standard contribution length detected')
