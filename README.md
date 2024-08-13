@@ -16,6 +16,10 @@
    + `Daily_Scientific_Program` the overview of all sessions in PDF format
      is generated here.
 
+## Install
+
+`apt-get install -y texlive-fonts-extra`
+
 ## REST API data fetcher
 
 ### `get_conftool_data.py`
