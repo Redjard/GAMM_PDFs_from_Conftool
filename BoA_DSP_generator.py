@@ -107,6 +107,10 @@ def advance_slot(start, times, slot):
 # helper routines fetching row entries from the CSV dataframe into easier to   #
 # handle dictioniaries                                                         #
 ################################################################################
+def latexEscape(string):
+	# string = string.replace('\\', r'\backslash')
+	return string
+
 def get_section_info(org, section):
 	if section.startswith('DFG-PP'):
 		section = section.replace('DFG-PP', 'SPP')
@@ -172,6 +176,8 @@ def get_contribution_info(session, idx, RvML=False):
 		return None
 	authors = session[pauthors]
 	authors = authors.replace(presenter, f'\\presenter{{{presenter}}}')
+	presenter = re.sub(r'(\s*\(\d+(,\d+)*\))?,?$', '', presenter)
+	
 	if session['session_short'].startswith('Poster'):
 		duration = 0
 	else:
@@ -188,7 +194,7 @@ def get_contribution_info(session, idx, RvML=False):
 		end   = session[pend]
 	
 	contribution = {
-		"title"         : session[ptitle],
+		"title"         : latexEscape(session[ptitle]),
 		"authors"       : authors,
 		"presenter"     : presenter,
 		"start"         : start,
@@ -414,7 +420,7 @@ def make_session_table(sessionsAtTime, start, n, withMises=False):  # function u
 				case sessionlengths.double: # Topcial Speakers
 					skip = True # found a topical speaker double slot and skip next
 					style = "T"
-					if n == 3:
+					if n == 3: # shorter session with wider fields
 						style = "t"
 					
 					inputs += f'\\multicolumn{{2}}{{{style}}}'
