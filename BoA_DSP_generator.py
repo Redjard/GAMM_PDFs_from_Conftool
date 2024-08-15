@@ -155,6 +155,10 @@ def get_session_info(row):
 
 # for a given session, get the nth presentation's info
 def get_contribution_info(session, idx, RvML=False):
+	
+	if not f'p{idx}_title' in session.keys():
+		return None
+	
 	ptitle     = f'p{idx}_title'
 	pauthors   = f'p{idx}_authors'
 	porgas     = f'p{idx}_organisations'
@@ -406,19 +410,11 @@ def make_session_table(sessionsAtTime, start, n, withMises=False):  # function u
 	#	T → n=3    // highlighted, use T
 	#	t → n=1.5  // highlighted, use T
 	
-	match n:
-		case 16: #this is the same magic 16 as in make_dsp working for 2024's GAMM
-			inputs = f'\\begin{{longtable}}{{PX{getTableColWidth(1)}|}}\n'
-		case _: # normal session (6 for GAMM)
-			column_sequence = ''.join(((f'X{getTableColWidth(n)}',f'Y{getTableColWidth(n)}')*-(-n//2))[:n])
-			inputs = f'\\begin{{longtable}}{{P{column_sequence}|}}\n'
-
+	column_sequence = ''.join(((f'X{getTableColWidth(n)}',f'Y{getTableColWidth(n)}')*-(-n//2))[:n])
+	inputs = f'\\begin{{longtable}}{{P{column_sequence}|}}\n'
+	
 	inputs += '    \\rowcolor{primary}'
-	if n != 16:
-		k = n
-	else:
-		k = 1 # Exception for Poster session
-	for i in range(k):
+	for i in range(n):
 		slot_start = advance_slot(start, i, sessionlengths.default).strftime("%H:%M")
 		inputs += f'&\\white{{{slot_start}}}'
 	inputs += '\\\\\n\\endhead\n'
@@ -481,14 +477,34 @@ def make_session_table(sessionsAtTime, start, n, withMises=False):  # function u
 						j -= 1 # revisit contribution for next column
 					else:
 						inputs += infofield
-					
-				case 0: # we explicitly set 0 for posters
-					inputs += infofield
-					inputs += rf'\\\hline'
-					
+				
 				case _:
 					raise SystemExit('make_session_table: non-standard contribution length detected')
 		inputs += '\\\\\\hline\n'
+	inputs += '\\end{longtable}\n'
+	return utf8_clean(inputs)
+
+def make_postersession_table(sessionsAtTime, start):  # function used only in make_dsp
+	
+	inputs = f'\\begin{{longtable}}{{PX{getTableColWidth(1)}|}}\n'
+	
+	inputs += '    \\rowcolor{primary}'
+	inputs += f'&\\white{{{start.strftime("%H:%M")}}}'
+	inputs += '\\\\\n\\endhead\n'
+	for _, session in sessionsAtTime.iterrows():
+		sname = session['session_short']
+		sroom = session['session_room']
+		inputs += rf'\white{{\detokenize{{{sname}}}}}\newline\white{{\small\detokenize{{ ({sroom})}}}}'
+		for i in range(100): # just loop through enough entries of the session
+			
+			contribution = get_contribution_info(session, i)
+			if contribution is None:
+				continue
+			
+			inputs += '\n&'
+			inputs += rf'\footnotesize{{\bfseries {contribution["title"]}}}\newline\presenter{{{contribution["presenter"]}}}'
+			inputs += '\\\\\\hline\n'
+			
 	inputs += '\\end{longtable}\n'
 	return utf8_clean(inputs)
 
@@ -597,12 +613,13 @@ def make_dsp(sessions, withMises=False):
 			if sessionsAtTime['session_short'].values[0].startswith('PL') | sessionsAtTime['session_short'].values[0].startswith('PML') | sessionsAtTime['session_short'].values[0].startswith('RvML'):
 				inputs += make_session_table(sessionsAtTime, start, int(1))
 			if sessionsAtTime['session_short'].values[0].startswith('Poster'):
-				inputs += make_session_table(sessionsAtTime, start, int(16)) # TODO 16 seems to be the maximum for this conference. This may need fixing
+				inputs += make_postersession_table(sessionsAtTime, start)
 			if sessionsAtTime['session_short'].values[0].startswith('RvML'):
 				inputs += make_session_table(sessionsAtTime, start, 2, withMises=withMises)
 		else:
 			num_slots = length // sessionlengths.default
 			inputs += make_session_table(sessionsAtTime, start, num_slots)
+			# inputs += make_postersession_table(sessionsAtTime, start)
 	contents = r'''\documentclass[colorlinks]{gamm-dsp}
 
 \begin{document}
