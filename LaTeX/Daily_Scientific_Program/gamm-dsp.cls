@@ -76,18 +76,17 @@
 \RequirePackage[ngerman,american]{babel}
 
 \RequirePackage{longtable, ragged2e, tabularx}
-\newcolumntype{A}{>{\RaggedRight}p{23.1cm}}
-\newcolumntype{T}{>{\RaggedRight\cellcolor{secondary!20}}p{7.42cm}}
-\newcolumntype{B}{>{\RaggedRight}p{5.465cm}}
-\newcolumntype{C}{>{\RaggedRight\leavevmode\color{white}\columncolor{tertiary}}B}
-\newcolumntype{X}{>{\RaggedRight}p{3.5cm}}
-\newcolumntype{Y}{>{\RaggedRight\leavevmode\color{white}\columncolor{tertiary}}X}
-\newcolumntype{x}{>{\RaggedRight}p{7.4cm}}
-\newcolumntype{t}{>{\RaggedRight\cellcolor{secondary!20}}p{15.22cm}}
-\newcolumntype{y}{>{\RaggedRight\leavevmode\color{white}\columncolor{tertiary}}x}
+
+% left most field, containing the session name and room
 \newcolumntype{P}{>{\columncolor{primary}}p{2cm}}
-\newcolumntype{m}{>{\RaggedRight}p{11.335cm}}
-\newcolumntype{M}{>{\RaggedRight\leavevmode\color{white}\columncolor{tertiary}}m}
+
+% regular colums, XYXY... for alternating white and black background
+\newcolumntype{X}{>{\RaggedRight}p}
+\newcolumntype{Y}{>{\RaggedRight\leavevmode\color{white}\columncolor{tertiary}}X}
+
+% highlighted field, indicating unusual length
+\newcolumntype{T}{>{\RaggedRight\cellcolor{secondary!20}}p}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Title page and maketitle                                                     %

@@ -107,10 +107,6 @@ def advance_slot(start, times, slot):
 # helper routines fetching row entries from the CSV dataframe into easier to   #
 # handle dictioniaries                                                         #
 ################################################################################
-def latexEscape(string):
-	# string = string.replace('\\', r'\backslash')
-	return string
-
 def get_section_info(org, section):
 	if section.startswith('DFG-PP'):
 		section = section.replace('DFG-PP', 'SPP')
@@ -232,6 +228,36 @@ def get_plenary_info(row):
 ################################################################################
 # helpers for writing the actual section files in LaTeX                        #
 ################################################################################
+def latexEscape(string):
+	# string = string.replace('\\', r'\backslash')
+	return string
+
+# calculate the width of a field for a table with n columns
+def getTableColWidth(n,factor=1):
+	
+	# total target width of the table in cm
+	availableWidth = 26
+	
+	# width of the left most field containing the session name and room
+	headerWidth = 2
+	
+	# default margin of longtable is 6pt, where a pt is 1/72 inch and an inch 2.54cm
+	margin = 6 * 1/72 * 2.54
+	
+	# available space after header
+	availableWidth -= headerWidth + margin*2
+	
+	# divide space evenly between all fields
+	availableWidth /= n
+	
+	# scale accordingly for double length talks etc.
+	availableWidth *= factor
+	
+	# margin is added on, so we must account for it
+	availableWidth -= margin*2
+	
+	return f'{{{availableWidth}cm}}'
+
 def write_PML(df, outdir):
 	file = open(outdir+'/PML.tex', 'w', encoding='utf-8')
 	for _, row in df.iterrows():
@@ -370,17 +396,21 @@ def write_dfg(organizers, df, outdir):
 # routine for writing the tables in the daily session program                 #
 ################################################################################
 def make_session_table(sessionsAtTime, start, n, withMises=False):  # function used only in make_dsp
+	
+	# translation reference:
+	#	BC → n=4
+	#	XY → n=6
+	#	xy → n=3
+	#	mM → n=2
+	#	A- → n=1
+	#	T → n=3    // highlighted, use T
+	#	t → n=1.5  // highlighted, use T
+	
 	match n:
-		case 1:
-			inputs = '\\begin{longtable}{PA|}\n'
-		case 2:
-			inputs = '\\begin{longtable}{PmM|}\n'
-		case 3:
-			inputs = '\\begin{longtable}{Pxyx|}\n'
 		case 16: #this is the same magic 16 as in make_dsp working for 2024's GAMM
-			inputs = '\\begin{longtable}{PA|}\n'
+			inputs = f'\\begin{{longtable}}{{PX{getTableColWidth(1)}|}}\n'
 		case _: # normal session (6 for GAMM)
-			column_sequence = ('XY'*-(-n//2))[:n]
+			column_sequence = ''.join(((f'X{getTableColWidth(n)}',f'Y{getTableColWidth(n)}')*-(-n//2))[:n])
 			inputs = f'\\begin{{longtable}}{{P{column_sequence}|}}\n'
 
 	inputs += '    \\rowcolor{primary}'
@@ -419,11 +449,9 @@ def make_session_table(sessionsAtTime, start, n, withMises=False):  # function u
 					inputs += f'\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
 				case sessionlengths.double: # Topcial Speakers
 					skip = True # found a topical speaker double slot and skip next
-					style = "T"
-					if n == 3: # shorter session with wider fields
-						style = "t"
 					
-					inputs += f'\\multicolumn{{2}}{{{style}}}'
+					inputs += f'\\multicolumn{{2}}{{T{getTableColWidth(n,2)}}}'  # double width field
+					
 					inputs += f'{{\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}}}'
 					
 				case sessionlengths.threeHalf: # either von Mises Lecture session with 2 talks or Minisymposium with 4 talks
@@ -437,7 +465,7 @@ def make_session_table(sessionsAtTime, start, n, withMises=False):  # function u
 						noSlots = n*sessionlengths.default // sessionlengths.miniSymposium
 						
 						if i == 0:  # start
-							inputs += '\\multicolumn{6}{A}{\\noindent\\begin{tabularx}{\\linewidth}{@{}BCBC@{}}'
+							inputs += f'\\multicolumn{{{n}}}{{{getTableColWidth(n,n)}}}{{\\noindent\\begin{{tabularx}}{{\\linewidth}}{{@{{}}BCBC@{{}}}}'
 						
 						inputs += f'\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
 						
