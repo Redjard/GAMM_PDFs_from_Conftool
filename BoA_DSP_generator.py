@@ -440,37 +440,39 @@ def make_session_table(sessionsAtTime, start, n, withMises=False):  # function u
 			
 			if contribution is None:
 				if sname == 'RvML':
-					inputs += '\\footnotesize{\\bfseries Price winner(s) and title(s) will be announced in the Opening}'
+					inputs += r'\footnotesize{\bfseries Price winner(s) and title(s) will be announced in the Opening}'
 				
 				continue
 			
+			infofield = rf'\footnotesize{{\bfseries {contribution["title"]}}}\newline\presenter{{{contribution["presenter"]}}}'
+			
 			match contribution["duration"]:
 				case 60: # PLenary lectures (incl Prandtl)
-					inputs += f'\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
+					inputs += infofield
 				case sessionlengths.double: # Topcial Speakers
-					skip = True # found a topical speaker double slot and skip next
+					skip = True # double length slot, so skip next time-slot in the loop
 					
-					inputs += f'\\multicolumn{{2}}{{T{getTableColWidth(n,2)}}}'  # double width field
-					
-					inputs += f'{{\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}}}'
+					inputs += f'\\multicolumn{{2}}{{T{getTableColWidth(n,2)}}}{{'  # double width field
+					inputs += infofield
+					inputs += f'}}'
 					
 				case sessionlengths.threeHalf: # either von Mises Lecture session with 2 talks or Minisymposium with 4 talks
 					print("MS",i,j)
 					if sname == 'RvML':
 						if withMises:
-							inputs += f'\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
+							inputs += infofield
 						else:
-							inputs += '\\footnotesize{\\bfseries Price winner(s) and title(s) will be announced in the Opening}'
+							inputs += r'\footnotesize{\bfseries Price winner(s) and title(s) will be announced in the Opening}'
 					else:
 						noSlots = n*sessionlengths.default // sessionlengths.miniSymposium
 						
 						if i == 0:  # start
-							inputs += f'\\multicolumn{{{n}}}{{{getTableColWidth(n,n)}}}{{\\noindent\\begin{{tabularx}}{{\\linewidth}}{{@{{}}BCBC@{{}}}}'
+							inputs += rf'\multicolumn{{{n}}}{{{getTableColWidth(n,n)}}}{{\noindent\begin{{tabularx}}{{\linewidth}}{{@{{}}BCBC@{{}}}}'
 						
-						inputs += f'\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
+						inputs += infofield
 						
 						if i == noSlots-1:  # end
-							inputs += '\\end{tabularx}}'
+							inputs += r'\end{tabularx}}'
 							break  # replaces drop_extra_empty, by doing the same functionally, behaves better if missing contrib in 4-ses-ms
 					
 				case sessionlengths.default: # the default 15 or 20 minutes section talks
@@ -478,10 +480,11 @@ def make_session_table(sessionsAtTime, start, n, withMises=False):  # function u
 					if shift > 0: # there is a gap in the schedule
 						j -= 1 # revisit contribution for next column
 					else:
-						inputs += f'\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}'
+						inputs += infofield
 					
 				case 0: # we explicitly set 0 for posters
-					inputs += f'\\footnotesize{{\\bfseries {contribution["title"]}}}\\newline\\presenter{{{contribution["presenter"]}}}\\\\\\hline'
+					inputs += infofield
+					inputs += rf'\\\hline'
 					
 				case _:
 					raise SystemExit('make_session_table: non-standard contribution length detected')
