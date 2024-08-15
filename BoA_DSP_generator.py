@@ -610,13 +610,13 @@ def make_dsp(sessions, withMises=False):
 		#inputs += f'\\section*{{{start.strftime("%H:%M")}}}\n'
 		length = get_duration(startStr, sessionsAtTime.session_end.values[0])
 		if len(sessionsAtTime) == 1:
-			if sessionsAtTime['session_short'].values[0].startswith('PL') | sessionsAtTime['session_short'].values[0].startswith('PML') | sessionsAtTime['session_short'].values[0].startswith('RvML'):
-				inputs += make_session_table(sessionsAtTime, start, 1, withMises=withMises)
 			if sessionsAtTime['session_short'].values[0].startswith('Poster'):
 				inputs += make_postersession_table(sessionsAtTime, start)
+			else:
+				inputs += make_session_table(sessionsAtTime, start, 1, withMises=withMises)
 		else:
 			num_slots = length // sessionlengths.default
-			inputs += make_session_table(sessionsAtTime, start, num_slots)
+			inputs += make_session_table(sessionsAtTime, start, num_slots, withMises=withMises)
 			# inputs += make_postersession_table(sessionsAtTime, start)
 	contents = r'''\documentclass[colorlinks]{gamm-dsp}
 
