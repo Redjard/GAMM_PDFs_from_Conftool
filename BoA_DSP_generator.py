@@ -45,42 +45,42 @@ sessionlengths.threeHalf = int(1.5*sessionlengths.default)
 def utf8_clean(instr):
 	utf8_to_latex = {
 	" &": " \&",
-	"#": "\\#",
-	"Γ": "\\ensuremath\\Gamma ",
-	"Ω": "\\ensuremath\\Omega ",
-	"∑": "\\ensuremath\\Sigma ",
-	"∇": "\\ensuremath\\nabla ",
-	"Δ": "\\ensuremath\\Delta ",
-	"√": "\\ensuremath\\sqrt",
-	"⋆": "\\ensuremath\\ast ",
-	"λ": "\\ensuremath\\lambda ",
-	"φ": "\\ensuremath\\varphi ",
-	"ε": "\\ensuremath\\varepsilon ",
-	"ϕ": "\\ensuremath\\Phi ",
-	"∈": "\\ensuremath\\in ",
-	"ψ": "\\ensuremath\\psi ",
-	"ξ": "\\ensuremath\\xi ",
-	"π": "\\ensuremath\\pi ",
-	"μ": "\\ensuremath\\mu ",
-	"∞": "\\ensuremath\\infty ",
-	"β": "\\ensuremath\\beta ",
-	"ω": "\\ensuremath\\omega ",
-	"→": "\\ensuremath\\rightarrow ",
-	"\u03c3": "\\ensuremath\\sigma ",
-	"θ": "\\ensuremath\\Theta ",
-	"\R": "\\mathbb{R}",
-	"≤": "\\ensuremath\\leq",
-	"\u2003": "~",
-	"\u202F": "~",
-	"\u2248": "",
-	"\u2212": "-",
-	"\u0308": '\\"',
-	"\u0301": "\\\'",
-	"\u001B": "",
-	"^2": "\\textsuperscript{2}",
-	"^m": "\\textsuperscript{m}",
-	"\percent": "\%", # we replaced % by \percent in html2latex
-	"\&=": "&=" 
+	# "#": "\\#",
+	# "Γ": "\\ensuremath\\Gamma ",
+	# "Ω": "\\ensuremath\\Omega ",
+	# "∑": "\\ensuremath\\Sigma ",
+	# "∇": "\\ensuremath\\nabla ",
+	# "Δ": "\\ensuremath\\Delta ",
+	# "√": "\\ensuremath\\sqrt",
+	# "⋆": "\\ensuremath\\ast ",
+	# "λ": "\\ensuremath\\lambda ",
+	# "φ": "\\ensuremath\\varphi ",
+	# "ε": "\\ensuremath\\varepsilon ",
+	# "ϕ": "\\ensuremath\\Phi ",
+	# "∈": "\\ensuremath\\in ",
+	# "ψ": "\\ensuremath\\psi ",
+	# "ξ": "\\ensuremath\\xi ",
+	# "π": "\\ensuremath\\pi ",
+	# "μ": "\\ensuremath\\mu ",
+	# "∞": "\\ensuremath\\infty ",
+	# "β": "\\ensuremath\\beta ",
+	# "ω": "\\ensuremath\\omega ",
+	# "→": "\\ensuremath\\rightarrow ",
+	# "\u03c3": "\\ensuremath\\sigma ",
+	# "θ": "\\ensuremath\\Theta ",
+	# "\R": "\\mathbb{R}",
+	# "≤": "\\ensuremath\\leq",
+	# "\u2003": "~",
+	# "\u202F": "~",
+	# "\u2248": "",
+	# "\u2212": "-",
+	# "\u0308": '\\"',
+	# "\u0301": "\\\'",
+	# "\u001B": "",
+	# "^2": "\\textsuperscript{2}",
+	# "^m": "\\textsuperscript{m}",
+	# "\percent": "\%", # we replaced % by \percent in html2latex
+	# "\&=": "&=" 
 	}
 
 	for key, value in utf8_to_latex.items():
@@ -420,9 +420,11 @@ def make_session_table(sessionsAtTime, start, n, withMises=False):  # function u
 	inputs += '\\\\\n\\endhead\n'
 	skip = False
 	for _, session in sessionsAtTime.iterrows():
-		sname = session['session_short']
-		sroom = session['session_room']
-		inputs += rf'\white{{\detokenize{{{sname}}}}}\newline\white{{\small\detokenize{{ ({sroom})}}}}'
+		inputs += rf"\white{{\detokenize{{{session['session_short']}}}}}\newline\white{{\small\detokenize{{ ({session['session_room']})}}}}"
+		
+		# This was added for EFDC, didn't exist in GAMM
+		inputs += rf"\newline\newline\white{{\small\detokenize{{{session['chair1_name']}}}}}"
+		
 		j = 0 # j counts speakers/contributions in the session CSV
 		for i in range(n): # i counts fields in row
 			if skip:
@@ -435,7 +437,7 @@ def make_session_table(sessionsAtTime, start, n, withMises=False):  # function u
 			contribution = get_contribution_info(session, j)
 			
 			if contribution is None:
-				if sname == 'RvML':
+				if session['session_short'] == 'RvML':
 					inputs += r'\footnotesize{\bfseries Price winner(s) and title(s) will be announced in the Opening}'
 				
 				continue
@@ -454,7 +456,7 @@ def make_session_table(sessionsAtTime, start, n, withMises=False):  # function u
 					
 				case sessionlengths.threeHalf: # either von Mises Lecture session with 2 talks or Minisymposium with 4 talks
 					print("MS",i,j)
-					if sname == 'RvML':
+					if session['session_short'] == 'RvML':
 						if withMises:
 							inputs += infofield
 						else:
@@ -578,13 +580,14 @@ def make_boa(df, withMises=False):
 	inputs += write_sections(Organizers, Contributed, outdir)
 
 	boa = open('./LaTeX/Book_of_abstracts/BookOfAbstracts.tex', 'w', encoding = 'utf-8')
-	contents = '''\\documentclass[colorlinks]{gamm-boa}
+	contents = r'''\nonstopmode
+\documentclass[colorlinks]{gamm-boa}
 
-\\begin{document}
-\\tableofcontents
+\begin{document}
+\tableofcontents
 CONTENTS
-\\printindex
-\\end{document}
+\printindex
+\end{document}
 '''
 	contents = contents.replace('CONTENTS', inputs)
 	boa.write(contents)
@@ -618,7 +621,8 @@ def make_dsp(sessions, withMises=False):
 			num_slots = length // sessionlengths.default
 			inputs += make_session_table(sessionsAtTime, start, num_slots, withMises=withMises)
 			# inputs += make_postersession_table(sessionsAtTime, start)
-	contents = r'''\documentclass[colorlinks]{gamm-dsp}
+	contents = r'''\nonstopmode
+\documentclass[colorlinks]{gamm-dsp}
 
 \begin{document}
 \tableofcontents

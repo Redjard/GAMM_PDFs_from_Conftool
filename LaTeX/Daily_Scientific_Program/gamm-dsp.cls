@@ -36,7 +36,9 @@
 % Style and packages                                                           %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % switch to OpenSans font as the default
-\RequirePackage[default, scale=.95]{opensans}
+% \RequirePackage[default, scale=.95]{opensans}
+\usepackage{fontspec}  % use this instead for xelatex
+\setmainfont{Open Sans}
 
 % colors and colored tables
 \RequirePackage[table]{xcolor}
@@ -71,8 +73,8 @@
 
 \RequirePackage{pdflscape}
 
-\RequirePackage[utf8]{inputenc}
-\RequirePackage[T1]{fontenc}
+% \RequirePackage[utf8]{inputenc}  % removed for xelatex
+% \RequirePackage[T1]{fontenc}     % removed for xelatex
 \RequirePackage[ngerman,american]{babel}
 
 \RequirePackage{longtable, ragged2e, tabularx}
@@ -92,7 +94,10 @@
 % Title page and maketitle                                                     %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \RequirePackage{../Common/gamm-titlepage}
-\renewcommand{\maketitle}{\gammtitle{Daily Scientific Program}}
+% ####### vvvvvv CHANGE THIS vvvvvv ########### <--------------------------------------------------------------------------
+% \renewcommand{\maketitle}{\gammtitle{Daily Scientific Program}}
+\renewcommand{\maketitle}{\efdctitle{Daily Scientific Program}}
+% ####### ^^^^^^ CHANGE THIS ^^^^^^ ########### <--------------------------------------------------------------------------
 \AtBeginDocument{%
   \begin{landscape}
     \maketitle

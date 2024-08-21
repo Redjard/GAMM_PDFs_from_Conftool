@@ -64,6 +64,76 @@
   \setcounter{page}{1}
 }% end of gammtitle
 
+\newcommand{\efdctitle}[1]{
+  \begin{titlepage}\color{primary}
+    \resizebox{\linewidth}{!}{\bfseries{
+      1\textsuperscript{st} European Fluid
+    }}
+    \vskip 0.0cm
+    \resizebox{\linewidth}{!}{\bfseries{
+      Dynamics Conference
+    }}
+    \vskip 0.5cm
+    \resizebox{\linewidth}{!}{\bfseries{
+      EFDC1
+    }}
+    \vskip 1cm
+    
+    % {\huge\bfseries of the Association\\[1ex]
+    %   of Applied Mathematics and Mechanics}
+
+    %\tikz\node[fill=primary,inner sep=0pt,outer sep=0pt]
+    \setlength{\fboxsep}{0pt}\colorbox{primary}{\reducedstrut%
+      \parbox{\linewidth}{%
+        \newlength{\mysep}\setlength{\mysep}{2em}
+        \newlength{\innerwidth}\setlength{\innerwidth}{\linewidth}
+        \addtolength{\innerwidth}{-4\mysep}
+        \vskip\mysep\hskip\mysep\parbox{\innerwidth}{%
+          \color{white}\huge\bfseries
+          September 16\textsuperscript{th} ~\textendash~ September 20\textsuperscript{th}, 2024\newline
+          Aachen (Germany)\\[1em]
+          % \textcolor{secondary}{#1}
+          #1
+          \vskip\mysep%
+        }
+      }\/% italic correction ensures full coverage of content
+    }\\[-\lineskip]
+    \includegraphics[width=\linewidth,height=.66\linewidth]{../coverimage_efdc}
+    
+    % \includegraphics[height=4em]{../Common/Logos/GAMM}
+    % \begin{minipage}[b]{.6\linewidth}
+    %   \color{black}\normalsize{\bfseries%
+    %   \uppercase{Gesellschaft} für\\
+    %   \uppercase{Angewandte Mathematik} und \uppercase{Mechanik} e.V.}\\
+    %   \footnotesize\uppercase{Association} of \uppercase{Applied Mathematics} and \uppercase{Mechanics}
+    % \end{minipage}%
+    % \hfill\large%
+    % \color{tertiary}{jahrestagung.gamm.org}
+  \end{titlepage}
+  
+  
+  % \newpage
+  % %
+  % \thispagestyle{empty}
+  % % \gamminstitutionlogo%
+  % \vfill
+  % {\large\bfseries%
+  %   #1 of the\\
+  %   \gammnumber~Annual Meeting\\
+  %   of the Association\\
+  %   of Applied Mathematics and Mechanics\\[1ex]
+  %   \gammmonthstart~\gammdaystart\textendash\gammmonthend~\gammdayend, %
+  %   \gammyear%
+  %   \\\gammplace~(\gammcountry)
+  % }
+  
+  
+  % \covercredits%
+  %
+  \newpage
+  \setcounter{page}{1}
+}% end of efdctitle
+
 \renewcommand{\tableofcontents}{%
   \if@twocolumn
   \@restonecoltrue\onecolumn
