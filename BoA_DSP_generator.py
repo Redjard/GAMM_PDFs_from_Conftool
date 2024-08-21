@@ -80,7 +80,7 @@ def utf8_clean(instr):
 	# "^2": "\\textsuperscript{2}",
 	# "^m": "\\textsuperscript{m}",
 	# "\percent": "\%", # we replaced % by \percent in html2latex
-	# "\&=": "&=" 
+	# "\&=": "&="
 	}
 
 	for key, value in utf8_to_latex.items():
@@ -413,10 +413,10 @@ def make_session_table(sessionsAtTime, start, n, withMises=False):  # function u
 	column_sequence = ''.join(((f'X{getTableColWidth(n)}',f'Y{getTableColWidth(n)}')*-(-n//2))[:n])
 	inputs = f'\\begin{{longtable}}{{P{column_sequence}|}}\n'
 	
-	inputs += '    \\rowcolor{primary}'
+	inputs += r'    \rowcolor{primary}'
 	for i in range(n):
 		slot_start = advance_slot(start, i, sessionlengths.default).strftime("%H:%M")
-		inputs += f'&\\white{{{slot_start}}}'
+		inputs += rf'& \raisebox{{-2pt}}{{\Large\bfseries\textcolor{{white}}{{{slot_start}}}}}'
 	inputs += '\\\\\n\\endhead\n'
 	skip = False
 	for _, session in sessionsAtTime.iterrows():
