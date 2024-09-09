@@ -620,8 +620,6 @@ CONTENTS
 def make_dsp(sessions, withMises=False):
 	sessions = sessions.sort_values(by='session_start')
 	
-	dsp = open('./LaTeX/Daily_Scientific_Program/Daily_Scientific_Program.tex', 'w', encoding = 'utf-8')
-	
 	# iterate over bunches of sessions starting at the same time
 	inputs = ''
 	old_day = None
@@ -657,23 +655,21 @@ def make_dsp(sessions, withMises=False):
 		\end{document}
 	'''
 	contents = contents.replace('CONTENTS', inputs)
-	dsp.write(contents)
-	dsp.close()
+	with open('./LaTeX/Daily_Scientific_Program/Daily_Scientific_Program.tex', 'w') as dsp:
+		dsp.write(contents)
 
 def make_room_plans(df, withMises=False):
 	outdir = './LaTeX/Daily_Scientific_Program/rooms/'
 	df = df.sort_values(by='session_room')
 
-	template_file = open('./LaTeX/Daily_Scientific_Program/room_template.tex', 'r', encoding = 'utf-8')
-	template = template_file.read()
-	template_file.close()
+	with open('./LaTeX/Daily_Scientific_Program/room_template.tex', 'r') as template_file:
+		template = template_file.read()
 
 	rooms = df['session_room'].unique()
 	for room in rooms:
 		print(f'Generating room: {room}\n')
 		sessions = df[df['session_room'] == room].sort_values(by='session_start')
 		room = room.replace('/', '-')
-		room_file = open(f'{outdir}{room}.tex', 'w', encoding = 'utf-8')
 		old_day = ''
 		inputs = ''
 		for _, row in sessions.iterrows():
@@ -684,7 +680,9 @@ def make_room_plans(df, withMises=False):
 			inputs += make_room_session_table(row, day, withMises=withMises)
 		contents = template.replace('ROOM', room)
 		contents = contents.replace('CONTENTS', inputs)
-		room_file.write(contents)
+		
+		with open(f'{outdir}{room}.tex', 'w') as room_file:
+			room_file.write(contents)
 
 
 ################################################################################
