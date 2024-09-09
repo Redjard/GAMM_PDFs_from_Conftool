@@ -180,7 +180,6 @@ def get_contribution_info(session, idx, RvML=False):
 	else:
 		duration = get_duration(session[pstart], session[pend])
 	if session[pabstract] != session[pabstract]:
-		print(session[pabstract])
 		abstract = ''
 	else:
 		abstract = html2latex(session[pabstract])
@@ -618,14 +617,12 @@ CONTENTS
 	boa.close()
 
 def make_dsp(sessions, withMises=False):
-	sessions = sessions.sort_values(by='session_start')
 	
 	# iterate over bunches of sessions starting at the same time
 	inputs = ''
 	old_day = None
-	for startStr in sessions['session_start'].unique():
-		# sessions at time
-		sessionsAtTime = sessions[sessions['session_start'] == startStr].sort_values(by='session_short') # session at time
+	sessions = sessions.sort_values(['session_start','session_short'])
+	for startStr, sessionsAtTime in sessions.groupby('session_start'):
 		
 		start = dt.datetime.fromisoformat(startStr)
 		day = start.strftime("%A, %B %d")
@@ -658,21 +655,19 @@ def make_dsp(sessions, withMises=False):
 	with open('./LaTeX/Daily_Scientific_Program/Daily_Scientific_Program.tex', 'w') as dsp:
 		dsp.write(contents)
 
-def make_room_plans(df, withMises=False):
+def make_room_plans(sessions, withMises=False):
 	outdir = './LaTeX/Daily_Scientific_Program/rooms/'
-	df = df.sort_values(by='session_room')
-
+	
 	with open('./LaTeX/Daily_Scientific_Program/room_template.tex', 'r') as template_file:
 		template = template_file.read()
-
-	rooms = df['session_room'].unique()
-	for room in rooms:
+	
+	sessions = sessions.sort_values(['session_room','session_start'])
+	for room, roomsessions in sessions.groupby('session_room'):
 		print(f'Generating room: {room}\n')
-		sessions = df[df['session_room'] == room].sort_values(by='session_start')
 		room = room.replace('/', '-')
 		old_day = ''
 		inputs = ''
-		for _, row in sessions.iterrows():
+		for _, row in roomsessions.iterrows():
 			day = dt.datetime.fromisoformat(row['session_start'].replace(' ','T')).strftime("%A, %B %d")
 			if old_day != day:
 				old_day = day
