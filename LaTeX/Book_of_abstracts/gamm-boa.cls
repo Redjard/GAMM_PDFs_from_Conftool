@@ -38,7 +38,9 @@
 % Style and packages                                                           %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % switch to OpenSans font as the default
-\RequirePackage[default, scale=.95]{opensans}
+% \RequirePackage[default, scale=.95]{opensans}
+\usepackage{fontspec}  % use this instead for xelatex
+\setmainfont{Open Sans}
 
 % colors
 \RequirePackage{xcolor}
@@ -72,8 +74,8 @@
   ]{hyperref}
 \fi
 
-\RequirePackage[utf8]{inputenc}
-\RequirePackage[T1]{fontenc}
+% \RequirePackage[utf8]{inputenc}  % removed for xelatex
+% \RequirePackage[T1]{fontenc}     % removed for xelatex
 \RequirePackage[ngerman,american]{babel}
 
 \RequirePackage{tabularx}
@@ -174,8 +176,8 @@
     \color{white}%
     \begin{tabularx}{\tablewidth}{@{}p{\widthof{Organizer(s):~}}X@{}}
       \multicolumn{2}{@{}p{\tablewidth}@{}}{%
-      \Headline{section}{#1}{#1}}\\
-      Organizer(s):   & \small #2
+      \Headline{section}{\detokenize{#1}}{\detokenize{#1}}}\\
+      % Organizer(s):   & \small #2  % EFDC doesn't have this
     \end{tabularx}%
   }%
   \par\nopagebreak%
@@ -197,7 +199,7 @@
     \color{white}%
     \begin{tabularx}{\tablewidth}{@{}p{\widthof{Chair(s):}}X@{}}
       \multicolumn{2}{@{}p{\tablewidth}@{}}{%
-      \Headline{subsection}{#1: #2 (#6)}{#1:~#2}}\\
+      \Headline{subsection}{\detokenize{#1: #2 (#6)}}{\detokenize{#1: #2}}}\\
       Date:           & #3\hfill #4--#5\\
       Room:           & #6
       \ifthenelse{\equal{#7}{}}{}{\\Chair(s):  & \small #7}

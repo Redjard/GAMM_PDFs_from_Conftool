@@ -16,6 +16,8 @@ Some vocabulary used in documentation:
 	contributions are shown as fields in the DSP, and each abstract in the book of abstracts belongs to a contribution
 	
 	sessions are a conftool object, they group together multiple contributions taking place in the same location consecutively. They are chaired by a specific chair for that session.
+	
+	sessionBlock/sec/section is a group of sessions that start on the same general specifier. S02.05 and S02.02 are both in sessionBlock S02
 
 """
 
@@ -38,6 +40,8 @@ sessionlengths.default = 15
 
 sessionlengths.double = 2*sessionlengths.default
 sessionlengths.threeHalf = int(1.5*sessionlengths.default)
+
+subsession_separation_chars = "[._]"  # regex pattern to split sessions like A01_01 or S06c.05 into their parent sessions A01 and S06c at chars . or _
 
 ################################################################################
 # cleaner routine that handles all characters giving plain pdflatex trouble    #
@@ -124,29 +128,22 @@ def get_section_info(org, section):
 		first = False
 	return title, organizers
 
-def get_session_info(row):
-	start = dt.datetime.fromisoformat(row['session_start'])
-	end   = dt.datetime.fromisoformat(row['session_end'])
-	c1 = row['chair1']
-	c2 = row['chair2']
-	c3 = row['chair3']
-
-	if pd.isna(c3):
-		if pd.isna(c2):
-			if pd.isna(c1):
-				chairs = ''
-			else:
-				chairs = c1
-		else:
-			chairs = f'{c1}\\newline {c2}'
-	else:
-		chairs = f'{c1}\\newline {c2}\\newline {c3}'
+def get_session_info(session):
+	
+	start = dt.datetime.fromisoformat(session['session_start'])
+	end   = dt.datetime.fromisoformat(session['session_end'])
+	
+	chairs = []
+	for i in range(10):
+		if f'chair{i}' in session.keys():
+			chairs.append(str( session[f'chair{i}'] ))
+	chairs = r' \newline '.join(chairs)
 
 	session = {
 		"chairs"   : chairs,
-		"number"   : row['session_short'],
-		"name"     : row['session_title'],
-		"room"     : row['session_room'],
+		"number"   : session['session_short'],
+		"name"     : session['session_title'],
+		"room"     : session['session_room'],
 		"start"    : start.strftime("%H:%M"),
 		"end"      : end.strftime("%H:%M"),
 		"date"     : start.strftime("%B %d, %Y")
@@ -183,6 +180,7 @@ def get_contribution_info(session, idx, RvML=False):
 	else:
 		duration = get_duration(session[pstart], session[pend])
 	if session[pabstract] != session[pabstract]:
+		print(session[pabstract])
 		abstract = ''
 	else:
 		abstract = html2latex(session[pabstract])
@@ -322,15 +320,27 @@ def write_RvML(df, outdir):
 		file.close()
 	return '\\input{RvML.tex}\n'
 
-def write_section(org, sec, df, outdir, toc_sessions_silent=False):
-	fname = sec.replace(' ', '_')
+def write_section(org, sessionBlock, sessions, outdir, toc_sessions_silent=False):
+	sessions = sessions[sessions['session_short'].str.startswith(sessionBlock)]
+	
+	if sessions.empty:
+		return
+	
+	fname = sessionBlock.replace(' ', '_')
 	fullname = outdir+'/'+fname+'.tex'
 	file = open(fullname, 'w', encoding='utf-8')
-	title, organizers = get_section_info(org, sec)
-	ostring  = f'\\Section{{{title}}}%\n'
+	
+	# EFDC change: efdc has no organizer info, the column track_type doesn't even exist
+	# title, organizers = get_section_info(org, sessionBlock)
+	organizers = '---'
+	title = sessions["session_title"].unique()
+	if len(title) != 1:
+		print(f"warning: found varying titles for sessionBlock {sessionBlock}:\n{title}")
+	title = title[0]
+	
+	ostring  = f'\\Section{{{sessionBlock}: {title}}}%\n'
 	ostring += f'        {{{organizers}}}\n\n'
 
-	sessions = df[df['session_short'].str.startswith(sec)]
 	for _, row in sessions.iterrows():
 		S = get_session_info(row)
 		if toc_sessions_silent:
@@ -344,10 +354,10 @@ def write_section(org, sec, df, outdir, toc_sessions_silent=False):
 		ostring += f'{{{S["end"]}}}%\n'
 		ostring += f'{{{S["room"]}}}%\n'
 		ostring += f'{{{S["chairs"]}}}%\n'
-		for i in range(1,7):
+		for i in range(100):
 			C = get_contribution_info(row, i)
 			if C is None:
-				break
+				continue
 			organizations = C["organizations"]
 			organizations = organizations.replace('; ','\\newline ')
 			start = re.sub('^.* ','', C["start"])
@@ -363,14 +373,18 @@ def write_section(org, sec, df, outdir, toc_sessions_silent=False):
 
 def write_sections(organizers, sessions, outdir):
 	inputs = ''
-	for i in range(1,27):
-		if not i == 6:
-			fname = write_section(organizers, f'S{i:02}', sessions, outdir)
-			inputs += f'\\input{{{fname}}}\n'
-		else:
-			fname1 = write_section(organizers, f'S{i:02}.1', sessions, outdir)
-			fname2 = write_section(organizers, f'S{i:02}.2', sessions, outdir)
-			inputs += f'\\input{{{fname1}}}\n\\input{{{fname2}}}\n'
+	# print(sessions["session_short"].str.rsplit(".",expand=True,n=1).iloc[:,0].unique())  # EFDC change: gamm splits at end, efdc at beginning
+	
+	for sessionBlock in sessions["session_short"].str.split(subsession_separation_chars,expand=True,n=1).iloc[:,0].unique():
+		# if i == 6:
+		# 	fname = write_section(organizers, f'S{i:02}.1', sessions, outdir)
+		# 	inputs += f'\\input{{{fname}}}\n'
+		# 	fname = write_section(organizers, f'S{i:02}.2', sessions, outdir)
+		# 	inputs += f'\\input{{{fname}}}\n'
+		# 	continue
+		
+		fname = write_section(organizers, sessionBlock, sessions, outdir)
+		inputs += f'\\input{{{fname}}}\n'
 	return inputs
 
 def write_minis(organizers, MS, YRM, outdir):
@@ -549,20 +563,30 @@ def make_room_session_table(row, day, withMises=False):
 ################################################################################
 def make_boa(df, withMises=False):
 	# Filter by the categories desired as chapter in the BoA
-	DFG              = df[df['session_short'].str.startswith('DFG')].sort_values(by='session_short')
-	Prandtl          = df[df['session_short'].str.startswith('PML')].sort_values(by='session_short')
-	Plenaries        = df[df['session_short'].str.startswith('PL')].sort_values(by='session_short')
-	Minisymposia     = df[df['session_short'].str.startswith('MS')].sort_values(by='session_short')
-	YoungResearchers = df[df['session_short'].str.startswith('YRM')].sort_values(by='session_short')
-	Contributed      = df[df['session_short'].str.startswith('S')].sort_values(by='session_short')
-
+	getSessions = lambda acronym: df[df['session_short'].str.startswith(acronym)].sort_values(by='session_short')
+	
+	# EFDC change: new session acronyms
+	# DFG              = getSessions('DFG')
+	# Prandtl          = getSessions('PML')
+	# Plenaries        = getSessions('PL')
+	# Minisymposia     = getSessions('MS')
+	# YoungResearchers = getSessions('YRM')
+	# Contributed      = getSessions('S')
+	DFG              = getSessions('DFG')
+	Prandtl          = getSessions('PML')
+	Plenaries        = getSessions('PL')
+	Minisymposia     = getSessions('MS')
+	YoungResearchers = getSessions('YRM')
+	Contributed      = getSessions('A')
+	
 	# Read the relevant Organizer information exported from ConfTool
 	Organizers = pd.read_csv('CSV/organizers.csv',
 							sep=';',
 							quotechar='"',
-							usecols=['track_type', 'name', 'firstname', 'organisation'])
+							# usecols=['track_type', 'name', 'firstname', 'organisation'])
+							usecols=['name', 'firstname', 'organisation'])  # EFDC change - track_type does not exist
 	# drop everyone whos not a session organizer and sort by sections
-	Organizers = Organizers[Organizers.track_type.notnull()].sort_values(by='track_type')
+	# Organizers = Organizers[Organizers.track_type.notnull()].sort_values(by='track_type')  # EFDC change - track_type does not exist
 
 	outdir  = './LaTeX/Book_of_abstracts/Sessions/'
 	inputs  = '\\chapter{Prandtl Memorial Lecture and Plenary~Lectures}\n'
@@ -622,16 +646,16 @@ def make_dsp(sessions, withMises=False):
 			inputs += make_session_table(sessionsAtTime, start, num_slots, withMises=withMises)
 			# inputs += make_postersession_table(sessionsAtTime, start)
 	contents = r'''\nonstopmode
-\documentclass[colorlinks]{gamm-dsp}
-
-\begin{document}
-\tableofcontents
-\arrayrulecolor{primary}
-
-CONTENTS
-\printindex
-\end{document}
-'''
+		\documentclass[colorlinks]{gamm-dsp}
+		
+		\begin{document}
+		\tableofcontents
+		\arrayrulecolor{primary}
+		
+		CONTENTS
+		\printindex
+		\end{document}
+	'''
 	contents = contents.replace('CONTENTS', inputs)
 	dsp.write(contents)
 	dsp.close()
@@ -681,12 +705,12 @@ def main():
 	# Read the Sessions exported from ConfTool
 	sessions = pd.read_csv('CSV/sessions.csv', sep=';', quotechar='"')
 	
-	# print('\nGenerating book of abstracts LaTeX files\n')  # TODO: RWTH revert
+	# print('\nGenerating book of abstracts LaTeX files\n')
 	# make_boa(sessions, withMises=withMises)
 	print('\nGenerating Session Table LaTeX files\n')
 	make_dsp(sessions, withMises=withMises)
-	# print('\nGenerating Room Plan LaTeX files\n')  # TODO: RWTH revert
-	# make_room_plans(sessions, withMises=withMises)
+	print('\nGenerating Room Plan LaTeX files\n')  # TODO: RWTH revert
+	make_room_plans(sessions, withMises=withMises)
 
 if __name__ == "__main__":
 	main()
