@@ -1,10 +1,13 @@
 \documentclass[a4paper,12pt]{article}
 
 \usepackage[margin=2cm]{geometry}
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
+% \RequirePackage[utf8]{inputenc}  % removed for xelatex
+% \RequirePackage[T1]{fontenc}     % removed for xelatex
 \usepackage[ngerman,american]{babel}
-\usepackage[default, scale=0.95]{opensans}
+% switch to OpenSans font as the default
+% \usepackage[default, scale=.95]{opensans}
+\usepackage{fontspec}  % use this instead for xelatex
+\setmainfont{Open Sans}
 \pagestyle{empty}
 
 \usepackage{tabularx, array}

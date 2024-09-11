@@ -523,19 +523,19 @@ def make_postersession_table(sessionsAtTime, start):  # function used only in ma
 	inputs += '\\end{longtable}\n'
 	return utf8_clean(inputs)
 
-def make_room_session_table(row, day, withMises=False):
+def make_room_session_table(row, withMises=False):
 	start = dt.datetime.fromisoformat(row['session_start'])
 	end = dt.datetime.fromisoformat(row['session_end'])
+	day = start.strftime("%A, %B %d")
 	stime = start.strftime("%H:%M")
 	etime = end.strftime("%H:%M")
 	inputs  = f'\n\\begin{{samepage}}\n\\section*{{{day}\\hfill{stime}--{etime}}}\n'
-	session = row['session_short']
-	inputs += f'\n\\begin{{center}}\\huge\\bfseries {session}\\end{{center}}\n'
+	inputs += f"\n\\begin{{center}}\\huge\\bfseries\\detokenize{{{row['session_short']}}}\\end{{center}}\n"
 	inputs += '\\begin{tabularx}{\\linewidth}{|A|B|}\n\\hline\n'
 	for i in range(1,7):
 		contribution = get_contribution_info(row, i)
 		if contribution is not None:
-			if (not withMises) and (session == 'RvML'):
+			if (not withMises) and (row['session_short'] == 'RvML'):
 				if i == 1:
 					cstart = start.strftime("%H:%M")
 					inputs += f'{cstart}&\n'
@@ -548,7 +548,7 @@ def make_room_session_table(row, day, withMises=False):
 				inputs += f'{cstart}&\n'
 				inputs += rf'\textbf{{{contribution["title"]}}}\newline\textit{{{contribution["presenter"]}}}\\ \hline' +'\n'
 		else:
-			if (session == 'RvML') and (i == 1):
+			if (row['session_short'] == 'RvML') and (i == 1):
 				cstart = start.strftime("%H:%M")
 				inputs += f'{cstart}&\n'
 				inputs += r'\textbf{Price winner(s) and title(s) will be announced in the Opening}\\ \hline' +'\n'
@@ -672,7 +672,7 @@ def make_room_plans(sessions, withMises=False):
 			if old_day != day:
 				old_day = day
 				inputs += '\n\\pagebreak[4]'
-			inputs += make_room_session_table(row, day, withMises=withMises)
+			inputs += make_room_session_table(row, withMises=withMises)
 		contents = template.replace('ROOM', room)
 		contents = contents.replace('CONTENTS', inputs)
 		
