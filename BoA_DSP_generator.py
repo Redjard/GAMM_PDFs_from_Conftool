@@ -560,7 +560,7 @@ def make_room_session_table(row, withMises=False):
 # top-level routines for generating the book of abstracts and daily session    #
 # program                                                                      #
 ################################################################################
-def make_boa(df, withMises=False):
+def make_boa(df, withMises):
 	# Filter by the categories desired as chapter in the BoA
 	getSessions = lambda acronym: df[df['session_short'].str.startswith(acronym)].sort_values(by='session_short')
 	
@@ -616,7 +616,7 @@ CONTENTS
 	boa.write(contents)
 	boa.close()
 
-def make_dsp(sessions, withMises=False):
+def make_dsp(sessions, withMises):
 	
 	# iterate over bunches of sessions starting at the same time
 	inputs = ''
@@ -655,8 +655,33 @@ def make_dsp(sessions, withMises=False):
 	with open('./LaTeX/Daily_Scientific_Program/Daily_Scientific_Program.tex', 'w') as dsp:
 		dsp.write(contents)
 
-def make_room_plans(sessions, withMises=False):
+def make_room_plans(sessions, withMises):
 	outdir = './LaTeX/Daily_Scientific_Program/rooms/'
+	
+	with open('./LaTeX/Daily_Scientific_Program/room_template.tex', 'r') as template_file:
+		template = template_file.read()
+	
+	sessions = sessions.sort_values(['session_room','session_start'])
+	for room, roomsessions in sessions.groupby('session_room'):
+		print(f'Generating room: {room}\n')
+		room = room.replace('/', '-')
+		old_day = ''
+		inputs = ''
+		for _, row in roomsessions.iterrows():
+			day = dt.datetime.fromisoformat(row['session_start'].replace(' ','T')).strftime("%A, %B %d")
+			if old_day != day:
+				old_day = day
+				inputs += '\n\\pagebreak[4]'
+			inputs += make_room_session_table(row, withMises=withMises)
+		contents = template.replace('ROOM', room)
+		contents = contents.replace('CONTENTS', inputs)
+		
+		with open(f'{outdir}{room}.tex', 'w') as room_file:
+			room_file.write(contents)
+
+def make_dailyroom_plans(sessions, withMises):
+	exit()
+	outdir = './LaTeX/Daily_Scientific_Program/days/'
 	
 	with open('./LaTeX/Daily_Scientific_Program/room_template.tex', 'r') as template_file:
 		template = template_file.read()
@@ -700,10 +725,19 @@ def main():
 	
 	# print('\nGenerating book of abstracts LaTeX files\n')
 	# make_boa(sessions, withMises=withMises)
+	
+	# Daily Scientific Program
+	# make a PDF of one table per each starting time of sessions.
+	# Left to right is chronological talks within the sessions, top to bottom is the different sessions at the same time
 	print('\nGenerating Session Table LaTeX files\n')
 	make_dsp(sessions, withMises=withMises)
-	print('\nGenerating Room Plan LaTeX files\n')  # TODO: RWTH revert
-	make_room_plans(sessions, withMises=withMises)
+	
+	# Make separate PDFs for each room, listing contributions there chronologically day by day
+	# print('\nGenerating Room Plan LaTeX files\n')  # TODO: RWTH revert
+	# make_room_plans(sessions, withMises=withMises)
+	
+	print('\nGenerating Daily Room Plan LaTeX files\n')
+	make_dailyroom_plans(sessions, withMises=withMises)
 
 if __name__ == "__main__":
 	main()
