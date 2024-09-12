@@ -77,5 +77,6 @@ LaTeX/Book_of_abstracts/BookOfAbstracts.tex
 LaTeX/Book_of_abstracts/Sessions/*.tex
 LaTeX/Daily_Scientific_Program/Daily_Scientific_Program.tex
 LaTeX/Daily_Scientific_Program/rooms/*.tex
+LaTeX/Daily_Scientific_Program/days/*.tex
 all_abstracts.tex
 all_abstracts.html

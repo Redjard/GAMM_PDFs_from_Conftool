@@ -100,8 +100,8 @@ def get_duration(start, end):
 	dt1 = dt.datetime.fromisoformat(start)
 	dt2 = dt.datetime.fromisoformat(end)
 	return int((dt2-dt1).total_seconds() / 60)
-def get_ses_length(session): # TODO
-	return get_duration(____, ____)
+def get_ses_length(session):
+	return int(( session.session_end - session.session_start ).total_seconds() / 60)
 
 def advance_slot(start, times, slot):
 	delta = dt.timedelta(seconds=times* slot*60)
@@ -130,8 +130,8 @@ def get_section_info(org, section):
 
 def get_session_info(session):
 	
-	start = dt.datetime.fromisoformat(session['session_start'])
-	end   = dt.datetime.fromisoformat(session['session_end'])
+	start = session['session_start']
+	end   = session['session_end']
 	
 	chairs = []
 	for i in range(10):
@@ -173,7 +173,7 @@ def get_contribution_info(session, idx, RvML=False):
 		return None
 	authors = session[pauthors]
 	authors = authors.replace(presenter, f'\\presenter{{{presenter}}}')
-	presenter = re.sub(r'(\s*\(\d+(,\d+)*\))?,?$', '', presenter)
+	presenter = re.sub(r'(\s*\(\d+(,\d+)*\))?,?$', '', presenter)  # remove orga footnote thingies
 	
 	if session['session_short'].startswith('Poster'):
 		duration = 0
@@ -203,8 +203,8 @@ def get_contribution_info(session, idx, RvML=False):
 	return contribution
 
 def get_plenary_info(row):
-	start = dt.datetime.fromisoformat(row['session_start'])
-	end   = dt.datetime.fromisoformat(row['session_end'])
+	start = row['session_start']
+	end   = row['session_end']
 	if pd.isna(row['chair1']):
 		chair = r'\color{red} NOT AVAILABLE'
 	else:
@@ -301,7 +301,7 @@ def write_PL(df, outdir):
 def write_RvML(df, outdir):
 	file = open(outdir+'/RvML.tex', 'w', encoding='utf-8')
 	for _, row in df.iterrows():
-		date = dt.datetime.fromisoformat(row['session_start']).strftime("%B %d, %Y")
+		date = row['session_start'].strftime("%B %d, %Y")
 		room = row['session_room']
 		ostring = ''
 		for j in range(1,3):
@@ -523,35 +523,56 @@ def make_postersession_table(sessionsAtTime, start):  # function used only in ma
 	inputs += '\\end{longtable}\n'
 	return utf8_clean(inputs)
 
-def make_room_session_table(row, withMises=False):
-	start = dt.datetime.fromisoformat(row['session_start'])
-	end = dt.datetime.fromisoformat(row['session_end'])
-	day = start.strftime("%A, %B %d")
-	stime = start.strftime("%H:%M")
-	etime = end.strftime("%H:%M")
-	inputs  = f'\n\\begin{{samepage}}\n\\section*{{{day}\\hfill{stime}--{etime}}}\n'
-	inputs += f"\n\\begin{{center}}\\huge\\bfseries\\detokenize{{{row['session_short']}}}\\end{{center}}\n"
+def make_room_session_table(session, withMises=False, standalone=False):
+	
+	day = session.session_start.strftime("%A, %B %d")
+	stime = session.session_start.strftime("%H:%M")
+	etime = session.session_end.strftime("%H:%M")
+	
+	inputs = r"\small" +'\n'
+	if standalone:
+		inputs += fr'\fancyhead[D]{{\Large\bfseries {day}}}'
+		inputs += fr'\fancyhead[C]{{\Large\bfseries {session.session_room}}}'
+		inputs += fr'\fancyhead[R]{{\Large\bfseries {stime}--{etime}}}'
+		inputs += r"\begin{samepage}"
+		inputs += fr"\begin{{minipage}}{{0.22\textwidth}}\hfill \huge\bfseries\detokenize{{{session['session_short']}:}}\hspace*{{15pt}}\end{{minipage}}"
+		inputs += fr"\begin{{minipage}}{{0.78\textwidth}}\bfseries\large\detokenize{{{session['session_title']}}}\end{{minipage}}}}"
+		inputs += "\\vspace{10pt} \n\n"
+		inputs += fr"\begin{{minipage}}{{0.22\textwidth}}\hfill \large\detokenize{{Chair:}}\hspace*{{15pt}}\end{{minipage}}"
+		inputs += fr"\begin{{minipage}}{{0.78\textwidth}}\bfseries\large\detokenize{{{session['chair1_name']}}}\end{{minipage}}}}"
+		# inputs += fr"{{\large\bfseries\detokenize{{{session['chair1_name']}}}}}"
+		inputs += "\\vspace{20pt} \n\n"
+	else:
+		inputs += f'\n\\begin{{samepage}}\n\\section*{{{day}\\hfill{stime}--{etime}}}\n'
+		inputs += f"\n\\begin{{center}}\\huge\\bfseries\\detokenize{{{session['session_short']}}}\\end{{center}}\n"
 	inputs += '\\begin{tabularx}{\\linewidth}{|A|B|}\n\\hline\n'
-	for i in range(1,7):
-		contribution = get_contribution_info(row, i)
-		if contribution is not None:
-			if (not withMises) and (row['session_short'] == 'RvML'):
-				if i == 1:
-					cstart = start.strftime("%H:%M")
-					inputs += f'{cstart}&\n'
-					inputs += r'\textbf{Price winner(s) and title(s) will be announced in the Opening}\\ \hline' +'\n'
-			else:
-				if contribution["duration"] == 0: # set explicitly for posters
-					cstart = start.strftime("%H:%M")
-				else:
-					cstart = dt.datetime.fromisoformat(contribution["start"]).strftime("%H:%M")
-				inputs += f'{cstart}&\n'
-				inputs += rf'\textbf{{{contribution["title"]}}}\newline\textit{{{contribution["presenter"]}}}\\ \hline' +'\n'
+	for i in range(99):
+		contribution = get_contribution_info(session, i)
+		
+		if session['session_short'] == 'RvML' and i == 1 and (contribution is None or not withMises):
+			cstart = session.session_start.strftime("%H:%M")
+			inputs += f'{cstart}&\n'
+			inputs += r'\textbf{Price winner(s) and title(s) will be announced in the Opening}\\ \hline' +'\n'
+			continue
+		
+		if contribution is None:
+			continue
+		
+		if contribution["duration"] == 0: # set explicitly for posters
+			cstart = session.session_start.strftime("%H:%M")
 		else:
-			if (row['session_short'] == 'RvML') and (i == 1):
-				cstart = start.strftime("%H:%M")
-				inputs += f'{cstart}&\n'
-				inputs += r'\textbf{Price winner(s) and title(s) will be announced in the Opening}\\ \hline' +'\n'
+			cstart = dt.datetime.fromisoformat(contribution["start"]).strftime("%H:%M")
+		inputs += f'{cstart}&\n'
+		if standalone:
+			inputs += rf'\footnotesize\textbf{{{contribution["title"]}}}'
+			# authors = re.sub(r'\s*\((\d+(?:,\d+)*)\)', r'$^\\textbf{\\footnotesize \,\g<1>}$', contribution["authors"])
+			authors = re.sub(r'\s*\((\d+(?:,\d+)*)\)', '', contribution["authors"])
+			inputs += rf'\vspace{{2pt}} \newline {{{authors}}}'
+			# orgas = re.sub(r'(^|;\s*)(\d+):\s*', r'\g<1>$^\\textbf{\\scriptsize \g<2>}$', contribution["organizations"])
+			# inputs += rf'\vspace{{5pt}} \newline \scriptsize{{{orgas}}}'
+		else:
+			inputs += rf'\textbf{{{contribution["title"]}}}\newline\textit{{{contribution["presenter"]}}}'
+		inputs += r"\\ \hline" +'\n'
 
 	inputs += '\\end{tabularx}\n\\end{samepage}\n'
 
@@ -622,15 +643,14 @@ def make_dsp(sessions, withMises):
 	inputs = ''
 	old_day = None
 	sessions = sessions.sort_values(['session_start','session_short'])
-	for startStr, sessionsAtTime in sessions.groupby('session_start'):
+	for start, sessionsAtTime in sessions.groupby('session_start'):
 		
-		start = dt.datetime.fromisoformat(startStr)
 		day = start.strftime("%A, %B %d")
 		if old_day != day:
 			old_day = day
 			inputs += f'\\chapter{{{day}}}\n'
 		#inputs += f'\\section*{{{start.strftime("%H:%M")}}}\n'
-		length = get_duration(startStr, sessionsAtTime.session_end.values[0])
+		length = get_ses_length(sessionsAtTime.iloc[0])
 		if len(sessionsAtTime) == 1:
 			if sessionsAtTime['session_short'].values[0].startswith('Poster'):
 				inputs += make_postersession_table(sessionsAtTime, start)
@@ -668,7 +688,7 @@ def make_room_plans(sessions, withMises):
 		old_day = ''
 		inputs = ''
 		for _, row in roomsessions.iterrows():
-			day = dt.datetime.fromisoformat(row['session_start'].replace(' ','T')).strftime("%A, %B %d")
+			day = row['session_start'].strftime("%A, %B %d")
 			if old_day != day:
 				old_day = day
 				inputs += '\n\\pagebreak[4]'
@@ -679,30 +699,62 @@ def make_room_plans(sessions, withMises):
 		with open(f'{outdir}{room}.tex', 'w') as room_file:
 			room_file.write(contents)
 
-def make_dailyroom_plans(sessions, withMises):
-	exit()
+def make_session_plans(sessions, withMises):
 	outdir = './LaTeX/Daily_Scientific_Program/days/'
 	
-	with open('./LaTeX/Daily_Scientific_Program/room_template.tex', 'r') as template_file:
-		template = template_file.read()
+	days = {}
 	
-	sessions = sessions.sort_values(['session_room','session_start'])
-	for room, roomsessions in sessions.groupby('session_room'):
-		print(f'Generating room: {room}\n')
-		room = room.replace('/', '-')
-		old_day = ''
-		inputs = ''
-		for _, row in roomsessions.iterrows():
-			day = dt.datetime.fromisoformat(row['session_start'].replace(' ','T')).strftime("%A, %B %d")
-			if old_day != day:
-				old_day = day
-				inputs += '\n\\pagebreak[4]'
-			inputs += make_room_session_table(row, withMises=withMises)
-		contents = template.replace('ROOM', room)
-		contents = contents.replace('CONTENTS', inputs)
+	sessions = sessions.sort_values(['session_start','session_room'])
+	for _, session in sessions.iterrows():
+		day = session.session_start.strftime("%A, %B %d")
 		
-		with open(f'{outdir}{room}.tex', 'w') as room_file:
-			room_file.write(contents)
+		if day not in days:
+			days[day] = []
+		days[day].append( make_room_session_table(session, withMises=withMises, standalone=True) )
+	
+	for day, dayTexs in days.items():
+		contents = r"""
+			\documentclass{article}
+			
+			% \usepackage[a3paper,margin=2cm]{geometry}
+			\usepackage[a4paper,landscape,margin=2cm,bmargin=1cm]{geometry}
+			\usepackage[fontsize=15.0,parindent=0]{fontsize}
+			\usepackage[ngerman,american]{babel}
+			\usepackage{fontspec}
+			\setmainfont{Open Sans}
+			\pagestyle{empty}
+			
+			\usepackage{tabularx, array}
+			\newcolumntype{A}{>{\centering}p{5ex}}
+			\newcolumntype{B}{>{\raggedright\arraybackslash}X}
+			
+			\usepackage{fancyhdr}
+			\pagestyle{fancy}
+			\fancyhf{}
+			\renewcommand{\headrulewidth}{0.66pt}
+			\setlength{\headheight}{22.0pt}
+			\setlength{\arrayrulewidth}{1pt}
+			\renewcommand{\arraystretch}{1.5}
+			
+			\newcommand{\presenter}[1]{\underline{#1}}
+			
+			\begin{document}
+			
+			CONTENTS
+			
+			\end{document}
+			
+			%%% Local Variables:
+			%%% mode: latex
+			%%% TeX-master: t
+			%%% End:
+		"""
+		if day in ["Monday, September 16","Friday, September 20"]:
+			contents = contents.replace('a4paper,landscape', 'a3paper,portrait' )
+		print(f"day: printed {len(dayTexs)} sessions on at least as many pages")
+		contents = contents.replace('CONTENTS', '\n\\pagebreak[4]'.join(dayTexs) )
+		with open(f'{outdir}{day}.tex', 'w') as day_file:
+			day_file.write(contents)
 
 
 ################################################################################
@@ -722,6 +774,8 @@ def main():
 	
 	# Read the Sessions exported from ConfTool
 	sessions = pd.read_csv('CSV/sessions.csv', sep=';', quotechar='"')
+	sessions['session_start'] = pd.to_datetime(sessions['session_start'])
+	sessions['session_end'] = pd.to_datetime(sessions['session_end'])
 	
 	# print('\nGenerating book of abstracts LaTeX files\n')
 	# make_boa(sessions, withMises=withMises)
@@ -736,8 +790,9 @@ def main():
 	# print('\nGenerating Room Plan LaTeX files\n')  # TODO: RWTH revert
 	# make_room_plans(sessions, withMises=withMises)
 	
+	# Make pages for each session, so per room and starttime. Group them into PDFs by day
 	print('\nGenerating Daily Room Plan LaTeX files\n')
-	make_dailyroom_plans(sessions, withMises=withMises)
+	make_session_plans(sessions, withMises=withMises)
 
 if __name__ == "__main__":
 	main()
